@@ -1,49 +1,29 @@
-name: "Azure Landing Zone GitOps Pipeline"
+name: 'Terraform Deploy'
+
 on:
-pull_request:
-branches: [ main ]
-push:
-branches: [ main ]
-env:
-ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  push:
+    branches:
+      - "main"
+
 jobs:
-validate_and_plan:
-name: "1. Lint, Scan & Plan"
-runs-on: ubuntu-latest
-steps:
-- name: Checkout Source Code
-uses: actions/checkout@v3
-- name: Setup Terraform Core Engine
-uses: hashicorp/setup-terraform@v2
-with:
-terraform_version: 1.5.0
-- name: Code Lint Check
-run: terraform fmt -check
-- name: Initialize Backend Storage
-run: terraform init
-- name: Security Static Analysis Scan
-run: |
-curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/
-install_linux.sh | bashtfsec .
-- name: Generate Infrastructure Spec Plan
-run: terraform plan -out=tfplan
-deploy_infrastructure:
-name: "2. Controlled Apply Stage"
-needs: validate_and_plan
-if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-runs-on: ubuntu-latest
-environment: production
-steps:
-- name: Checkout Source Code
-uses: actions/checkout@v3
-- name: Setup Terraform Core Engine
-uses: hashicorp/setup-terraform@v2
-with:
-terraform_version: 1.5.0
-- name: Initialize System Backend
-run: terraform init
-- name: Execute Infrastructure Application
-run: terraform apply -auto-approve
+  terraform_workflow:    # Job ke naam me space nahi ho sakta, isliye underscore (_) lagaya hai
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4  # 'action/checkout' nahi 'actions/checkout' hota hai (s plural)
+
+      - name: Hashicorp - Setup Terraform
+        uses: hashicorp/setup-terraform@v3 # Updated to stable version
+        with:
+          terraform_version: "1.5.7" # Version specify karna best practice hai
+
+      - name: Terraform Init, Validate, Plan & Apply
+        run: |
+          terraform init
+          terraform validate    # 'validation' nahi, sahi command 'validate' hoti hai
+          terraform plan
+          terraform apply -auto-approve # single dash (-) ki jagah double dash (--) hota hai auto-approve me
+
+
+    
